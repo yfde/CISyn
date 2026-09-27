@@ -2,6 +2,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 import threading
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -203,11 +204,9 @@ class RendererBlender(RendererBase):
             )
             job.output_path.mkdir(exist_ok=True, parents=True)
             # set tmp path
-            import os
             import socket
-            gpu_id = os.environ.get('CUDA_VISIBLE_DEVICES')
             host = socket.gethostname()
-            tmp_render_path = (tmp_dir / f'blender_render_tmp_{host}_{gpu_id}').as_posix() + '/'
+            tmp_render_path = tempfile.mkdtemp(prefix=f'blender_render_tmp_{host}_', dir=tmp_dir) + '/'
             # set renderer
             active_cameras = cls._set_renderer_in_engine(
                 job=job.model_dump(mode='json'),
