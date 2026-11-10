@@ -70,7 +70,7 @@ weights
 ## 📦 Data Preparation
 
 Download CISyn dataset from [🤗HuggingFace](https://huggingface.co/datasets/cisyn/cisyn/tree/main).
-Please refer to scripts in `datasets/preprocess/` to preprocess Hi4D, ChI3D. 
+Please refer to scripts in `datasets/preprocess/` to preprocess Hi4D, CHI3D and Harmony4D. 
 Please follow [this guidance](https://github.com/ChiSu001/SAT-HMR/blob/main/docs/data_preparation.md) to prepare AGORA, BEDLAM. Download [DTO-Humans](https://github.com/gouba2333/DTO-Humans.git) annotations from [Google Drive](https://drive.google.com/drive/folders/1ddc43P6iYIctAvmuravIxbxZm3F2uB41?usp=drive_link) | [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/539173c2952b40f5a422/). Placing all datasets in `data/`.
  You can skip this step if you are not going to train or evaluate MA-HMR.
 
@@ -104,6 +104,9 @@ data/
 │   ├── images/
 │   │   └── train2014/
 │   └── COCO_CHMR_SMPL_OPT.npz
+├── harmony4d/
+│   ├── test/
+│   └── harmony4d_smpl_test.npz
 ├── hi4d/
 │   ├── pair**/
 │   ├── hi4d_smpl_test.npz

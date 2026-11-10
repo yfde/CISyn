@@ -29,6 +29,7 @@ class Engine():
             'bedlam_validation_6fps': evaluate_agora,
             'chi3d_train': evaluate_3dpw,
             'hi4d_test': evaluate_3dpw,
+            'harmony4d_test': evaluate_3dpw,
             'cisyn_test': evaluate_3dpw,
         }
         self.inference_func = inference
@@ -49,6 +50,7 @@ class Engine():
             self.do_tto = getattr(args, 'do_tto', False)
             self.tto_iters = getattr(args, 'tto_iters', 20)
             self.tto_lr = getattr(args, 'tto_lr', 1e-3)
+            self.pair_metrics = getattr(args, 'pair_metrics', False)
         elif self.mode == 'infer':
             output_dir = getattr(args, 'output_dir', None)
             if output_dir is not None:
@@ -372,6 +374,10 @@ class Engine():
             self.accelerator.print(f'Evaluate on {key}: {img_cnt} images')
             self.accelerator.print('Using following threshold(s): ', self.conf_thresh)
             conf_thresh = self.conf_thresh  # if 'agora' in key or 'bedlam' in key else [0.2]
+            # inter-person metrics (eval cfg `pair_metrics: True`), implemented in evaluate_3dpw only
+            extra_kwargs = {}
+            if getattr(self, 'pair_metrics', False) and self.eval_func_maps[key] is evaluate_3dpw:
+                extra_kwargs['pair_metrics'] = True
             for thresh in conf_thresh:
                 if self.accelerator.is_main_process or self.distributed_eval:
                     error_dict = self.eval_func_maps[key](model = unwrapped_model,
@@ -384,7 +390,8 @@ class Engine():
                                     vis = self.eval_vis_num != 0,
                                     do_tto = self.do_tto,
                                     tto_iters = self.tto_iters,
-                                    tto_lr = self.tto_lr)
+                                    tto_lr = self.tto_lr,
+                                    **extra_kwargs)
                     if isinstance(error_dict,dict) and self.mode == 'train':
                         log_dict = flatten_dict(error_dict)
                         self.accelerator.log({(f'{key}_thresh_{thresh}/'+k):v for k,v in log_dict.items()}, step=epoch)

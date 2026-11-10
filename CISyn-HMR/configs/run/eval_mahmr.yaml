@@ -3,10 +3,11 @@ model: fov_kid
 pretrain: True
 pretrain_path: 'weights/ma_hmr/mahmr_stage3.bin'
 
-eval_datasets_used: ['hi4d', 'chi3d']
-eval_datasets_split: ['test', 'train']
+eval_datasets_used: ['hi4d', 'chi3d', 'harmony4d']
+eval_datasets_split: ['test', 'train', 'test']
 # force_aspect_ratio: [720, 1280]  # [H, W] — center zero-pad images to this ratio before resize; remove to disable
 eval_vis_num: 20
+# pair_metrics: True  # also evaluate the two people of each two-person image jointly (inter-person metrics)
 conf_thresh: [0.3]
 eval_batch_size: 16
 eval_num_workers: 8

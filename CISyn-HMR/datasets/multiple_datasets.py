@@ -9,12 +9,14 @@ from .coco import COCO
 from .hi4d import Hi4D
 from .insta import INSTA
 from .chi3d import CHI3D
+from .harmony4d import Harmony4D
 from .cisyn import CISyn
 datasets_dict = {
     'bedlam': BEDLAM, 'agora': AGORA, 
     'mpii': MPII, 'coco': COCO, 
     'chi3d': CHI3D, 
     'hi4d': Hi4D, 
+    'harmony4d': Harmony4D,
     'aic': AIC, 'insta': INSTA,
     'cisyn': CISyn,
 }

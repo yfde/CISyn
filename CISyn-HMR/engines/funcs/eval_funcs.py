@@ -409,7 +409,10 @@ def test_agora(model, eval_dataloader, conf_thresh,
 def evaluate_3dpw(model, eval_dataloader, conf_thresh,
                         vis = True, vis_step = 40, results_save_path = None,
                         distributed = False, accelerator = None,
-                        do_tto = False, tto_iters = 20, tto_lr = 3e-4):
+                        do_tto = False, tto_iters = 20, tto_lr = 3e-4,
+                        pair_metrics = False):
+    """pair_metrics: also evaluate the two people of each two-person image jointly
+    (inter-person metrics of the supplementary) and save them to pair_metrics.npz."""
     assert results_save_path is not None
     assert accelerator is not None
     num_processes = accelerator.num_processes
@@ -465,6 +468,8 @@ def evaluate_3dpw(model, eval_dataloader, conf_thresh,
     smpl_faces_t = torch.from_numpy(smpl_layer.faces.astype('int64')).to(cur_device)
     interpen_before = []  # mean penetration depth (m) per image before TTO
     interpen_after  = []  # mean penetration depth (m) per image after  TTO  
+    # inter-person metrics, one entry per two-person image (pair_metrics=True)
+    pair_img_paths, pair_gt_pelvis, pair_pred_pelvis, pair_pen = [], [], [], []
 
     progress_bar = tqdm(total=len(eval_dataloader), disable=not accelerator.is_local_main_process, ncols=80)
     progress_bar.set_description('evaluate')
@@ -602,6 +607,25 @@ def evaluate_3dpw(model, eval_dataloader, conf_thresh,
                     interpen_after.append(pen_a.item())
                 else:
                     interpen_after.append(0.)
+
+            # --- inter-person metrics (two-person images only) ---
+            if pair_metrics and len(gtIdxs) == 2:
+                matched = [matchDict[str(gtIdx)] for gtIdx in gtIdxs]
+                both_matched = all(m not in ('miss', 'invalid') for m in matched)
+                # camera-space pelvis = mean of the H36M hips, as in the MPJPE root alignment
+                pred_pelvis = np.full((2, 3), np.nan, dtype=np.float32)
+                for k, m in enumerate(matched):
+                    if m not in ('miss', 'invalid'):
+                        pred_pelvis[k] = pred_j3ds[m][[1, 4]].mean(axis=0)
+                with torch.no_grad():
+                    gt_v = torch.as_tensor(targets[idx]['verts'], dtype=torch.float32, device=cur_device)
+                    pen_gt = compute_interpen_loss(gt_v, smpl_faces_t).item()
+                    pen_pred = compute_interpen_loss(pred_verts_pre_tto[matched].float(), smpl_faces_t).item() \
+                        if both_matched else float('nan')
+                pair_img_paths.append(targets[idx]['img_path'])
+                pair_gt_pelvis.append(gt_j3ds[:, [1, 4]].mean(axis=1).astype(np.float32))
+                pair_pred_pelvis.append(pred_pelvis)
+                pair_pen.append(np.array([pen_pred, pen_gt], dtype=np.float32))
 
             #counting
             total_fp += falsePositive_count
@@ -779,6 +803,11 @@ def evaluate_3dpw(model, eval_dataloader, conf_thresh,
         interpen_before = accelerator.gather_for_metrics(interpen_before)
         if do_tto:
             interpen_after = accelerator.gather_for_metrics(interpen_after)
+        if pair_metrics:
+            pair_img_paths = accelerator.gather_for_metrics(pair_img_paths)
+            pair_gt_pelvis = accelerator.gather_for_metrics(pair_gt_pelvis)
+            pair_pred_pelvis = accelerator.gather_for_metrics(pair_pred_pelvis)
+            pair_pen = accelerator.gather_for_metrics(pair_pen)
 
     if len(mpjpe) <= num_processes:
         return "Failed to evaluate. Keep training!"
@@ -838,6 +867,25 @@ def evaluate_3dpw(model, eval_dataloader, conf_thresh,
         if interpen_after_arr.size > 0:
             error_dict['interpen_after_tto_mm'] = round(float(np.mean(interpen_after_arr)) * 1000, 4)
 
+    # inter-person metrics, averaged over the two-person images where both people are detected
+    if pair_metrics and len(pair_img_paths) > 0:
+        _, keep = np.unique(np.array(pair_img_paths), return_index=True)  # drop distributed-eval padding repeats
+        keep = np.sort(keep)
+        pair_img_paths = np.array(pair_img_paths)[keep]
+        pair_gt_pelvis, pair_pred_pelvis, pair_pen = (np.stack(x)[keep] for x in (pair_gt_pelvis, pair_pred_pelvis, pair_pen))
+        both = ~np.isnan(pair_pred_pelvis).any(axis=(1, 2))
+        error_dict['pair_images'] = int(len(keep))
+        error_dict['pair_images_both_detected'] = int(both.sum())
+        if both.any():
+            # image-plane (x, y) part of the error of the camera-space pelvis-to-pelvis vector
+            vec_err = (pair_pred_pelvis[both, 0] - pair_pred_pelvis[both, 1]) - (pair_gt_pelvis[both, 0] - pair_gt_pelvis[both, 1])
+            error_dict['pair_xy_err_mm'] = round(float(np.linalg.norm(vec_err[:, :2], axis=-1).mean() * 1000), 1)
+            # penetration between the two meshes: mean depth (mm) and share of images with penetration (%)
+            error_dict['pen_pred_mm'] = round(float(pair_pen[both, 0].mean() * 1000), 1)
+            error_dict['pen_pred_pct'] = round(float((pair_pen[both, 0] > 0).mean() * 100), 1)
+            error_dict['pen_gt_mm'] = round(float(pair_pen[both, 1].mean() * 1000), 1)
+            error_dict['pen_gt_pct'] = round(float((pair_pen[both, 1] > 0).mean() * 100), 1)
+
     if accelerator.is_main_process:
         with open(os.path.join(results_save_path,'results.txt'),'w') as f:
             for k,v in error_dict.items():
@@ -859,6 +907,14 @@ def evaluate_3dpw(model, eval_dataloader, conf_thresh,
                 pred_trans=np.array(per_person_trans, dtype=np.float32),   # (N, 3) in camera space
                 pred_intrinsics=np.array(per_person_intrinsics, dtype=np.float32),  # (N, 3, 3)
             )
+            if pair_metrics and len(pair_img_paths) > 0:
+                np.savez(
+                    os.path.join(results_save_path, 'pair_metrics.npz'),
+                    img_paths=pair_img_paths,
+                    gt_pelvis=pair_gt_pelvis,      # (F, 2, 3) camera space (m), GT person order
+                    pred_pelvis=pair_pred_pelvis,  # (F, 2, 3) matched predictions (m), NaN = missed
+                    pen=pair_pen,                  # (F, 2) penetration depth (m) of [prediction, GT], NaN = not both detected
+                )
 
         # beta11 analysis
         if betas_arr.shape[-1] >= 11:
