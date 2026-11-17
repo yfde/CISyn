@@ -1,6 +1,25 @@
-# CISyn
+# CISyn: Human Mesh Recovery in Close Interactions with Physics-Simulated Synthetic Data
 
-Physics-based pipeline for generating synthetic multi-person contact/collision sequences. The generated dataset is available at **[HuggingFace: cisyn/cisyn](https://huggingface.co/datasets/cisyn/cisyn)**. Given random character identities, motions, and environments, it:
+Yufan Deng, Lorenza Prospero, Christian Rupprecht
+
+[![arXiv](https://img.shields.io/badge/arXiv-2611.18894-b31b1b.svg)](https://arxiv.org/abs/2611.18894)
+[![Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-CISyn-yellow)](https://huggingface.co/datasets/cisyn/cisyn)
+[![Model](https://img.shields.io/badge/%F0%9F%A4%97%20Model-CISyn--HMR-yellow)](https://huggingface.co/cisyn/hmr)
+
+Official code release for **CISyn**, a large-scale synthetic dataset of close human-human interactions (25,000 sequences) generated with physics simulation and Blender rendering, and **CISyn-HMR**, a human mesh recovery model trained on it.
+
+This repository contains:
+
+- **Data generation pipeline** (this directory) — physics-based generation of multi-person contact/collision sequences.
+- **[CISyn-HMR](CISyn-HMR/)** — training, evaluation and inference code for the HMR model.
+
+The generated dataset is available at **[HuggingFace: cisyn/cisyn](https://huggingface.co/datasets/cisyn/cisyn)**.
+
+---
+
+## Data generation pipeline
+
+Given random character identities, motions, and environments, the pipeline:
 
 1. **Defines** sequences (`seq_define`) — samples characters, AMASS motions, HDRI lighting, and camera pose; writes `meta.json` per sequence.
 2. **Simulates** them (`simulate_seq`) — runs a Genesis rigid-body physics simulation; outputs per-character `.npz` motion files (AMASS-compatible).
@@ -14,11 +33,16 @@ Three variants cover different scene configurations:
 | `_2` | `*_seq_2.py` | 2-person, lower speed |
 | `_3p` | `*_seq_3p.py` | 3-person |
 
-All variants write output to `cisyn/`.
+All variants write output to `cisyn/`, each into its own sequence-index range (set by `SAVE_RANGE` at the bottom of each `seq_define*.py`).
 
 ---
 
 ## Environment setup
+
+```bash
+git clone https://github.com/yfde/CISyn.git
+cd CISyn
+```
 
 Two separate conda environments are required — one for simulation, one for rendering.
 
@@ -46,11 +70,12 @@ Then apply the required patches to the xrfeitoria library:
 bash patches/apply_patches.sh
 ```
 
-This replaces two files in the installed xrfeitoria package:
+This replaces three files in the installed xrfeitoria package:
 
 | Patch file | Replaces |
 |-----------|---------|
 | `patches/xrfeitoria_motion.py` | `xrfeitoria/utils/anim/motion.py` |
+| `patches/xrfeitoria_motion_utils.py` | `xrfeitoria/utils/anim/utils.py` |
 | `patches/xrfeitoria_render.py` | `xrfeitoria/renderer/renderer_blender.py` |
 
 ---
@@ -97,20 +122,20 @@ python seq_define_3p.py   # 3-person
 
 ### Step 2 — Simulate
 
-Runs Genesis physics for a single sequence folder. Parallelise over many folders with a job scheduler.
+Runs Genesis physics for a single sequence folder. Parallelise over many folders with a job scheduler. Use the same variant (`_2` / `_3p`) that defined the sequence in Step 1.
 
 ```bash
-python simulate_seq.py    --seq-dir cisyn/000000   # (or _2 / _3p variant)
+python simulate_seq.py    --seq-dir cisyn/<seq_id>   # (or _2 / _3p variant)
 ```
 
-Output per folder: `{asset_folder}.npz` files containing simulated AMASS-format motion.
+Output per folder: one `{asset_name}.npz` per character containing simulated AMASS-format motion.
 
 ### Step 3 — Render
 
-Renders a simulated sequence with Blender/xrfeitoria. Must be run after Step 2.
+Renders a simulated sequence with Blender/xrfeitoria. Must be run after Step 2, with the same variant.
 
 ```bash
-python simulate_render_seq.py    --seq-dir cisyn/000000   # (or _2 / _3p variant)
+python simulate_render_seq.py    --seq-dir cisyn/<seq_id>   # (or _2 / _3p variant)
 ```
 
 Output per folder: `img/`, `mask/`, `depth/` frame directories and `video.mp4`.
@@ -118,7 +143,7 @@ Output per folder: `img/`, `mask/`, `depth/` frame directories and `video.mp4`.
 `--root-dir` defaults to the repo directory (where `data/` lives); override if running from elsewhere:
 
 ```bash
-python simulate_render_seq.py --seq-dir /path/to/cisyn/000000 --root-dir /path/to/CISyn
+python simulate_render_seq.py --seq-dir /path/to/cisyn/<seq_id> --root-dir /path/to/CISyn
 ```
 
 ---
@@ -154,3 +179,18 @@ This project builds on the following open-source works:
 - **[xrfeitoria](https://github.com/openxrlab/xrfeitoria)** — Blender-based rendering framework used for RGB, mask, and depth rendering.
 - **[SynBody](https://huggingface.co/datasets/caizhongang/SynBody)** — synthetic human body dataset that informed asset and body shape design.
 - **[SMPLSim](https://github.com/ZhengyiLuo/SMPLSim)** — SMPL-based physics simulation reference used for character control.
+
+---
+
+## Citation
+
+If you find this work useful, please cite:
+
+```bibtex
+@article{deng2026cisyn,
+  title   = {CISyn: Human Mesh Recovery in Close Interactions with Physics-Simulated Synthetic Data},
+  author  = {Deng, Yufan and Prospero, Lorenza and Rupprecht, Christian},
+  journal = {arXiv preprint arXiv:2611.18894},
+  year    = {2026}
+}
+```

@@ -45,7 +45,7 @@ weights/
         └── smpl_kid_template.npy
 ```
 
-2. Download DINOv2 pretrained weights from [their official repository](https://github.com/facebookresearch/dinov2?tab=readme-ov-file#pretrained-models). We use `ViT-B/14 distilled (without registers)`. Please put `dinov2_vitb14_pretrain.pth` to `weights/dinov2`. These weights will be used to initialize our encoder. You can skip this step if you are not going to train MA-HMR.
+2. Download DINOv2 pretrained weights from [their official repository](https://github.com/facebookresearch/dinov2?tab=readme-ov-file#pretrained-models). We use `ViT-B/14 distilled (without registers)`. Please put `dinov2_vitb14_pretrain.pth` to `weights/dinov2`. These weights will be used to initialize our encoder. You can skip this step if you are not going to train CISyn-HMR.
 ```
 weights/
 └── dinov2
@@ -72,7 +72,7 @@ weights
 Download CISyn dataset from [🤗HuggingFace](https://huggingface.co/datasets/cisyn/cisyn/tree/main).
 Please refer to scripts in `datasets/preprocess/` to preprocess Hi4D, CHI3D and Harmony4D. 
 Please follow [this guidance](https://github.com/ChiSu001/SAT-HMR/blob/main/docs/data_preparation.md) to prepare AGORA, BEDLAM. Download [DTO-Humans](https://github.com/gouba2333/DTO-Humans.git) annotations from [Google Drive](https://drive.google.com/drive/folders/1ddc43P6iYIctAvmuravIxbxZm3F2uB41?usp=drive_link) | [Tsinghua Cloud](https://cloud.tsinghua.edu.cn/d/539173c2952b40f5a422/). Placing all datasets in `data/`.
- You can skip this step if you are not going to train or evaluate MA-HMR.
+ You can skip this step if you are not going to train or evaluate CISyn-HMR.
 
 ```
 data/
@@ -124,7 +124,7 @@ data/
 ## ▶️ Inference on Images
 <h4> Inference with 1 GPU</h4>
 
-We provide some demo images in `demo/`. You can run MA-HMR on all images on a single GPU via:
+We provide some demo images in `demo/`. You can run CISyn-HMR on all images on a single GPU via:
 
 
 ```bash
