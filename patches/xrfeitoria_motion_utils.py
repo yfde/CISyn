@@ -1,3 +1,5 @@
+# Modified from xrfeitoria (https://github.com/openxrlab/xrfeitoria), licensed under Apache-2.0.
+# Changes were made for CISyn.
 """Utilities for animation data loading and dumping."""
 
 from pathlib import Path

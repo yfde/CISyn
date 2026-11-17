@@ -1,3 +1,5 @@
+# Modified from xrfeitoria (https://github.com/openxrlab/xrfeitoria), licensed under Apache-2.0.
+# Changes were made for CISyn.
 """Motion data structure and related functions."""
 
 from collections import OrderedDict

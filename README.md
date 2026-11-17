@@ -1,6 +1,6 @@
 # CISyn: Human Mesh Recovery in Close Interactions with Physics-Simulated Synthetic Data
 
-Yufan Deng, Lorenza Prospero, Christian Rupprecht
+[Yufan Deng](https://yufandeng.com/), [Lorenza Prospero](https://eng.ox.ac.uk/people/lorenza-prospero), [Christian Rupprecht](https://chrirupp.github.io/)
 
 [![arXiv](https://img.shields.io/badge/arXiv-2611.18894-b31b1b.svg)](https://arxiv.org/abs/2611.18894)
 [![Dataset](https://img.shields.io/badge/%F0%9F%A4%97%20Dataset-CISyn-yellow)](https://huggingface.co/datasets/cisyn/cisyn)
@@ -179,6 +179,14 @@ This project builds on the following open-source works:
 - **[xrfeitoria](https://github.com/openxrlab/xrfeitoria)** — Blender-based rendering framework used for RGB, mask, and depth rendering.
 - **[SynBody](https://huggingface.co/datasets/caizhongang/SynBody)** — synthetic human body dataset that informed asset and body shape design.
 - **[SMPLSim](https://github.com/ZhengyiLuo/SMPLSim)** — SMPL-based physics simulation reference used for character control.
+
+---
+
+## License
+
+The code is released under the [Creative Commons Attribution-NonCommercial 4.0 International License](https://creativecommons.org/licenses/by-nc/4.0/) and is available for non-commercial research purposes only. See [LICENSE](LICENSE).
+
+Files in `patches/` are modified versions of [xrfeitoria](https://github.com/openxrlab/xrfeitoria) source files and remain under xrfeitoria's [Apache-2.0 license](https://github.com/openxrlab/xrfeitoria/blob/main/LICENSE). Third-party data used by the pipeline (AMASS, SMPL, SynBody assets, HDRIs) is subject to its original licenses.
 
 ---
 
